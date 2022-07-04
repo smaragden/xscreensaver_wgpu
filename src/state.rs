@@ -19,9 +19,9 @@ pub struct State<'a> {
     frame_buffer: wgpu::Buffer,
     frame_bind_group: wgpu::BindGroup,
     // Render
-    camera: Camera,
-    camera_uniform: CameraUniform,
-    camera_buffer: wgpu::Buffer,
+    _camera: Camera,
+    _camera_uniform: CameraUniform,
+    _camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
     // Assets
     ground: Ground<'a>,
@@ -70,16 +70,14 @@ impl<'a> State<'a> {
 
         let frame_uniform = FrameUniform::new();
 
-        let frame_buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Frame Buffer"),
-                contents: bytemuck::cast_slice(&[frame_uniform]),
-                usage: wgpu::BufferUsages::UNIFORM
-                    | wgpu::BufferUsages::COPY_DST,
-            });
+        let frame_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Frame Buffer"),
+            contents: bytemuck::cast_slice(&[frame_uniform]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
-        let frame_bind_group_layout = device.create_bind_group_layout(
-            &wgpu::BindGroupLayoutDescriptor {
+        let frame_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX,
@@ -91,18 +89,16 @@ impl<'a> State<'a> {
                     count: None,
                 }],
                 label: Some("frame_bind_group_layout"),
-            },
-        );
-
-        let frame_bind_group =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &frame_bind_group_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: frame_buffer.as_entire_binding(),
-                }],
-                label: Some("frame_bind_group"),
             });
+
+        let frame_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &frame_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: frame_buffer.as_entire_binding(),
+            }],
+            label: Some("frame_bind_group"),
+        });
 
         let camera = Camera {
             // position the camera one unit up and 2 units back
@@ -120,16 +116,14 @@ impl<'a> State<'a> {
         let mut camera_uniform = CameraUniform::new();
         camera_uniform.update_view_proj(&camera);
 
-        let camera_buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Camera Buffer"),
-                contents: bytemuck::cast_slice(&[camera_uniform]),
-                usage: wgpu::BufferUsages::UNIFORM
-                    | wgpu::BufferUsages::COPY_DST,
-            });
+        let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Camera Buffer"),
+            contents: bytemuck::cast_slice(&[camera_uniform]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
-        let camera_bind_group_layout = device.create_bind_group_layout(
-            &wgpu::BindGroupLayoutDescriptor {
+        let camera_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX,
@@ -141,29 +135,23 @@ impl<'a> State<'a> {
                     count: None,
                 }],
                 label: Some("camera_bind_group_layout"),
-            },
-        );
-
-        let camera_bind_group =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &camera_bind_group_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: camera_buffer.as_entire_binding(),
-                }],
-                label: Some("camera_bind_group"),
             });
+
+        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &camera_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_buffer.as_entire_binding(),
+            }],
+            label: Some("camera_bind_group"),
+        });
 
         // Create the rendering pipeline
-        let pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
-                bind_group_layouts: &[
-                    &frame_bind_group_layout,
-                    &camera_bind_group_layout,
-                ],
-                push_constant_ranges: &[],
-            });
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: &[&frame_bind_group_layout, &camera_bind_group_layout],
+            push_constant_ranges: &[],
+        });
 
         let ground = Ground::init(&device, pipeline_layout, swapchain_format);
 
@@ -179,9 +167,9 @@ impl<'a> State<'a> {
             frame_uniform,
             frame_buffer,
             frame_bind_group,
-            camera,
-            camera_uniform,
-            camera_buffer,
+            _camera: camera,
+            _camera_uniform: camera_uniform,
+            _camera_buffer: camera_buffer,
             camera_bind_group,
         }
     }
@@ -202,30 +190,27 @@ impl<'a> State<'a> {
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        let mut encoder = self.device.create_command_encoder(
-            &wgpu::CommandEncoderDescriptor { label: None },
-        );
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {
-            let mut rpass =
-                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: None,
-                    color_attachments: &[Some(
-                        wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color {
-                                    r: 0.01,
-                                    g: 0.0,
-                                    b: 0.01,
-                                    a: 1.0,
-                                }),
-                                store: true,
-                            },
-                        },
-                    )],
-                    depth_stencil_attachment: None,
-                });
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.01,
+                            g: 0.0,
+                            b: 0.01,
+                            a: 1.0,
+                        }),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
             rpass.set_pipeline(&self.ground.pipeline);
             rpass.set_bind_group(0, &self.frame_bind_group, &[]);
             rpass.set_bind_group(1, &self.camera_bind_group, &[]);
@@ -241,7 +226,6 @@ impl<'a> State<'a> {
                 0,
                 0..self.ground.instances.len() as _,
             );
-            //rpass.draw_indexed(0..self.ground.num_indices, 0, 0..2);
         }
 
         self.queue.submit(Some(encoder.finish()));

@@ -13,9 +13,7 @@ async fn main() {
         loop {
             for event in window.process_events() {
                 match event {
-                    xscreensaver::Event::Resized { width, height } => {
-                        setup.resize(width, height)
-                    }
+                    xscreensaver::Event::Resized { width, height } => setup.resize(width, height),
                 }
             }
             setup.render();

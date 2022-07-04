@@ -28,6 +28,7 @@ struct VertexOutput {
     @location(1) position: vec3<f32>,
 };
 
+// Vertex Shader
 @vertex
 fn vs_main(
     model: VertexInput,
@@ -47,7 +48,7 @@ fn vs_main(
     return out;
 }
 
-// Fragment shader
+// Fragment Shader
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(1.0, 0.1, 1.0, 1.0 - ((in.position.z - 10.0) * 0.1));
