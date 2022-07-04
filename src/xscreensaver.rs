@@ -1,13 +1,10 @@
 #[link(name = "X11")]
-#[link(name = "GLX")]
 extern "C" {}
 use std::ffi::CString;
 use std::mem::MaybeUninit;
 use x11::xlib::{
-    Display, Window, XBlackPixelOfScreen, XCreateGC, XCreateSimpleWindow,
-    XDefaultScreenOfDisplay, XGetWindowAttributes, XMapWindow, XOpenDisplay,
-    XRootWindowOfScreen, XSetForeground, XWhitePixelOfScreen,
-    XWindowAttributes,
+    Display, Window, XBlackPixelOfScreen, XCreateSimpleWindow, XDefaultScreenOfDisplay,
+    XGetWindowAttributes, XMapWindow, XOpenDisplay, XRootWindowOfScreen, XWindowAttributes,
 };
 
 pub enum Event {
@@ -34,21 +31,13 @@ impl ScreensaverWindow {
                 .unwrap_or("")
                 .trim_start_matches("0x")
                 .to_string();
-            let xscreensaver_id =
-                Window::from_str_radix(&xscreensaver_id_str, 16).ok();
-            let display_num =
-                CString::new("DISPLAY").expect("can create CString");
+            let xscreensaver_id = Window::from_str_radix(&xscreensaver_id_str, 16).ok();
+            let display_num = CString::new("DISPLAY").expect("can create CString");
             let dpy = XOpenDisplay(libc::getenv(display_num.as_ptr()));
 
             match xscreensaver_id {
                 // We got our window from xscreensaver
                 Some(root_window_id) => {
-                    let mut attrs = MaybeUninit::<XWindowAttributes>::uninit();
-                    XGetWindowAttributes(
-                        dpy,
-                        root_window_id,
-                        attrs.as_mut_ptr(),
-                    );
                     x11::xlib::XSelectInput(
                         dpy,
                         root_window_id,
@@ -56,36 +45,9 @@ impl ScreensaverWindow {
                             | x11::xlib::KeyPressMask
                             | x11::xlib::StructureNotifyMask,
                     );
-                    //let attrs2 = attrs.assume_init();
-                    let g = XCreateGC(
-                        dpy,
-                        root_window_id,
-                        0,
-                        std::ptr::null_mut(),
-                    );
-                    XSetForeground(
-                        dpy,
-                        g,
-                        XWhitePixelOfScreen(XDefaultScreenOfDisplay(dpy)),
-                    );
-                    let g2 = XCreateGC(
-                        dpy,
-                        root_window_id,
-                        0,
-                        std::ptr::null_mut(),
-                    );
-                    XSetForeground(
-                        dpy,
-                        g2,
-                        XBlackPixelOfScreen(XDefaultScreenOfDisplay(dpy)),
-                    );
                     Ok(ScreensaverWindow {
                         dpy,
                         root_window_id,
-                        // height: attrs2.height,
-                        // width: attrs2.width,
-                        // graphics_context: g,
-                        // black_graphics_context: g2,
                     })
                 }
                 // We create our own window for development
@@ -113,27 +75,10 @@ impl ScreensaverWindow {
                             | x11::xlib::KeyPressMask
                             | x11::xlib::StructureNotifyMask,
                     );
-
-                    let g = XCreateGC(dpy, win, 0, std::ptr::null_mut());
-                    XSetForeground(
-                        dpy,
-                        g,
-                        XWhitePixelOfScreen(XDefaultScreenOfDisplay(dpy)),
-                    );
-                    let g2 = XCreateGC(dpy, win, 0, std::ptr::null_mut());
-                    XSetForeground(
-                        dpy,
-                        g2,
-                        XBlackPixelOfScreen(XDefaultScreenOfDisplay(dpy)),
-                    );
                     XMapWindow(dpy, win);
                     Ok(ScreensaverWindow {
                         dpy,
                         root_window_id: win,
-                        // height: height as i32,
-                        // width: width as i32,
-                        // graphics_context: g,
-                        // black_graphics_context: g2,
                     })
                 }
             }
@@ -165,13 +110,7 @@ impl ScreensaverWindow {
 impl SizedWindow for ScreensaverWindow {
     fn size(&self) -> (u32, u32) {
         let mut attrs = MaybeUninit::<XWindowAttributes>::uninit();
-        unsafe {
-            XGetWindowAttributes(
-                self.dpy,
-                self.root_window_id,
-                attrs.as_mut_ptr(),
-            )
-        };
+        unsafe { XGetWindowAttributes(self.dpy, self.root_window_id, attrs.as_mut_ptr()) };
         let attrs = unsafe { attrs.assume_init() };
         (attrs.width as u32, attrs.height as u32)
     }
